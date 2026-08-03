@@ -22,4 +22,13 @@ def paginate(fetch_page: PageFetcher, start_page: int = 1) -> Iterator[dict[str,
     Stops once the reported page count is exhausted or a page comes back
     with no items, whichever happens first.
     """
-    raise NotImplementedError
+    page = start_page
+    while True:
+        envelope = fetch_page(page)
+        items = envelope["items"]
+        if not items:
+            return
+        yield from items
+        if page >= envelope["totalPages"]:
+            return
+        page += 1
