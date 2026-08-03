@@ -30,7 +30,12 @@ class AteraClient:
     def __init__(self, api_key: Optional[str] = None, base_url: str = API_BASE_URL) -> None:
         """Create a client using the given API key, or `atera_api_key` from the environment/.env file."""
         load_dotenv()
-        self._api_key = api_key or os.environ.get("atera_api_key")
+        resolved_key = api_key or os.environ.get("atera_api_key")
+        if not resolved_key:
+            raise AteraAPIError(
+                "missing atera_api_key; set it in the environment or a .env file"
+            )
+        self._api_key = resolved_key
         self._base_url = base_url
         self._session = requests.Session()
 

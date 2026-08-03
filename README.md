@@ -11,19 +11,44 @@ API. The first command computes a **ticket resolution-rate metric**:
 how many tickets in a time window were resolved by Robin/Autopilot
 versus by a human technician.
 
-The project is organized in layers, each depending only on the one
-below it:
+## Layout (what each file is for)
+
+Everything that matters for the CLI lives under `atera_cli/`. The split
+is intentional and small on purpose — each file has one job:
 
 ```
-cli          -> argument parsing and command dispatch (composition root)
-analytics    -> pure functions that compute metrics from plain data
-client       -> AteraClient, the HTTP interface to the Atera Public API
-pagination   -> generic page-walking helper used by AteraClient
+atera_cli/
+  __main__.py          # enables: python -m atera_cli
+  cli.py               # argparse + wires client → analytics → print
+  client.py            # HTTP: auth, retries, ticket endpoints
+  pagination.py        # walks Atera's page envelope (used only by client)
+  exceptions.py        # AteraError / AteraAPIError / AteraRateLimitError
+  analytics/
+    tickets.py         # pure metric functions (no HTTP)
+tests/                 # unit tests mirroring the modules above
 ```
 
-`analytics` modules never import `requests` or `client` — they operate
-only on plain dictionaries, so they can be tested without any network
-access.
+Root docs / config (not “code clutter”):
+
+
+| Path                            | Role                                |
+| ------------------------------- | ----------------------------------- |
+| `.env`                          | your API key (gitignored)           |
+| `requirements.txt`              | `requests`, `python-dotenv`         |
+| `api.atera.txt`                 | local copy of Atera Public API docs |
+| `CLAUDE.md`                     | project engineering guidance        |
+| `Robin_FDE_Home_Assignment.pdf` | assignment brief                    |
+
+
+Dependency direction (so nothing cycles):
+
+```
+cli  →  analytics (pure) + client
+client  →  pagination + exceptions
+```
+
+`analytics` never imports `requests` or `client`, so metrics can be
+tested with plain dict fixtures and no network.
 
 ## Installation
 
@@ -35,6 +60,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+On macOS, use the venv (or `.venv/bin/python`) — bare `python` is often
+not on PATH.
+
 ## Configuring `.env`
 
 The client reads your Atera Public API key from a `.env` file in the
@@ -44,23 +72,138 @@ project root (never commit this file — it's already gitignored):
 atera_api_key=<your Atera Public API key, from Admin > API in app.atera.com>
 ```
 
-## Running
+
+
+## CLI reference
+
+Entry point (always via the module):
 
 ```bash
 python -m atera_cli --help
-python -m atera_cli tickets resolution-rate --since 2026-06-01 --until 2026-08-01 --format table
+python -m atera_cli tickets --help
+python -m atera_cli tickets list --help
+python -m atera_cli tickets get --help
+python -m atera_cli tickets resolution-rate --help
 ```
 
-## Planned CLI commands
 
-- `tickets resolution-rate --since --until --format` — Robin vs.
-  technician resolution rate over a date window. **(in progress)**
-- Additional commands (e.g. bulk customer/agent creation from CSV) may
-  be added later as new subcommands under the same CLI, following the
-  same layering.
+
+### Commands available today
+
+
+| Command                   | Purpose                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `tickets list`            | View/triage tickets by status + priority (like the UI filter drawer)          |
+| `tickets get`             | Pull a single ticket by ID (`GET /api/v3/tickets/{ticketId}`)                 |
+| `tickets resolution-rate` | Robin/Autopilot vs. technician resolution counts and rates over a date window |
+
+
+
+
+### `tickets list` options
+
+
+| Option                  | Required | Default    | Description                                                              |
+| ----------------------- | -------- | ---------- | ------------------------------------------------------------------------ |
+| `--status`              | no       | `Open`     | Passed to the API `ticketStatus` filter                                  |
+| `--priority`            | no       | `Critical` | Client-side filter on `TicketPriority` (API has no priority query param) |
+| `--format {table,json}` | no       | `table`    | Output format                                                            |
+| `-h`, `--help`          | no       |            | Show command help                                                        |
+
+
+Critical-open triage (defaults — mirrors filtering Open + Critical in the UI):
+
+```bash
+python -m atera_cli tickets list
+```
+
+Same thing, explicit:
+
+```bash
+python -m atera_cli tickets list --status Open --priority Critical
+```
+
+Other priorities / JSON:
+
+```bash
+python -m atera_cli tickets list --status Open --priority High
+python -m atera_cli tickets list --status Pending --priority Critical --format json
+```
+
+
+
+### `tickets get` options
+
+
+| Option                  | Required | Description                      |
+| ----------------------- | -------- | -------------------------------- |
+| `ticket_id`             | yes      | Positional TicketID (e.g. `912`) |
+| `--format {table,json}` | no       | Output format (default: `table`) |
+| `-h`, `--help`          | no       | Show command help                |
+
+
+Pull a single ticket by ID (same ticket as in the UI below — `#912 Printers XYZ`):
+
+```bash
+python -m atera_cli tickets get 912
+```
+
+<img src="./Daniel_Ticket_Printers.png" alt="Daniel Ticket Printers XYZ 912" width="800" />
+
+Example table result:
+
+```
+Ticket #912
+  Title:       Printers XYZ
+  Status:      Open
+  Priority:    High
+  Customer:    CodeCraft
+  Technician:  Daniel Interview
+```
+
+### `tickets resolution-rate` options
+
+
+| Option                  | Required | Description                                             |
+| ----------------------- | -------- | ------------------------------------------------------- |
+| `--since YYYY-MM-DD`    | yes      | Window start (inclusive), based on `TicketResolvedDate` |
+| `--until YYYY-MM-DD`    | yes      | Window end (inclusive), based on `TicketResolvedDate`   |
+| `--format {table,json}` | no       | Output format (default: `table`)                        |
+| `-h`, `--help`          | no       | Show command help                                       |
+
+
+```bash
+python -m atera_cli tickets resolution-rate \
+  --since 2026-06-01 \
+  --until 2026-08-01
+
+python -m atera_cli tickets resolution-rate \
+  --since 2026-06-01 \
+  --until 2026-08-01 \
+  --format json
+```
+
+Example `resolution-rate` table result:
+
+```
+Ticket resolution rate
+  Total resolved:     1
+  Robin/Autopilot:    0 (0.0%)
+  Technician:         1 (100.0%)
+```
+
+
+
+## Assumption
+
+Robin/Autopilot resolution is currently detected as
+`TechnicianContactID == -1`, based on documented write-side Autopilot
+assignment behavior. If live read data shows a better signal, change
+only `is_robin_resolved()` in `analytics/tickets.py`.
 
 ## Status
 
-This is a skeleton: the CLI, HTTP client, and analytics modules are
-stubbed out (imports and argument parsing work; the actual API calls
-and metric calculations raise `NotImplementedError` until built out).
+`tickets list`, `tickets get`, and `tickets resolution-rate` are
+implemented and work against the live API. Additional commands
+(e.g. bulk create) can be added later as new CLI subcommands without
+changing the client/analytics split.
