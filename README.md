@@ -148,7 +148,7 @@ Pull a single ticket by ID (same ticket as in the UI below — `#912 Printers XY
 python -m atera_cli tickets get 912
 ```
 
-![Daniel Ticket Printers XYZ 912](./Daniel_Ticket_Printers.png)
+Daniel Ticket Printers XYZ 912
 
 Example table result:
 
@@ -192,6 +192,36 @@ Ticket resolution rate
   Total resolved:     1
   Robin/Autopilot:    0 (0.0%)
   Technician:         1 (100.0%)
+```
+
+
+
+## Tests
+
+From the project root with the venv active:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Or one module at a time:
+
+```bash
+python -m unittest tests.test_client -v
+python -m unittest tests.test_analytics_tickets -v
+python -m unittest tests.test_pagination -v
+```
+
+Do **not** run `python tests/test_*.py` directly — that skips the package
+path and fails with `ModuleNotFoundError: No module named 'atera_cli'`.
+
+These are offline unit tests (mocked HTTP / plain ticket dicts). When they
+pass you should see `OK` at the end, e.g.:
+
+```
+Ran 15 tests in 0.XXXs
+
+OK
 ```
 
 
