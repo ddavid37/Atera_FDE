@@ -148,7 +148,7 @@ Pull a single ticket by ID (same ticket as in the UI below — `#912 Printers XY
 python -m atera_cli tickets get 912
 ```
 
-<img src="./Daniel_Ticket_Printers.png" alt="Daniel Ticket Printers XYZ 912" width="800" />
+![Daniel Ticket Printers XYZ 912](./Daniel_Ticket_Printers.png)
 
 Example table result:
 
@@ -160,6 +160,8 @@ Ticket #912
   Customer:    CodeCraft
   Technician:  Daniel Interview
 ```
+
+
 
 ### `tickets resolution-rate` options
 
