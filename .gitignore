@@ -9,13 +9,10 @@ __pycache__/
 # Environment variables
 .env
 
-resources
-
-.gitignore
+# Local-only docs / assignment materials
+resources/
+CLAUDE.md
+Robin_FDE_Home_Assignment.pdf
 
 # macOS
 .DS_Store
-
-Robin_FDE_Home_Assignment.pdf
-
-CLAUDE.md
