@@ -9,7 +9,9 @@ __pycache__/
 # Environment variables
 .env
 
-resources/
+resources
+
+.gitignore
 
 # macOS
 .DS_Store
