@@ -1,5 +1,7 @@
 """Generic pagination helper for Atera list endpoints.
 
+pagination - technique of dividing a large set of data into smaller, manageable chunks or "pages"
+
 Every Atera list endpoint returns the same envelope shape:
 
     {"items": [...], "page": int, "itemsInPage": int,
