@@ -158,7 +158,7 @@ Ticket #912
   Status:      Open
   Priority:    High
   Customer:    CodeCraft
-  Technician:  Daniel Interview
+  Technician:  Daniel Interview - FDE
 ```
 
 
